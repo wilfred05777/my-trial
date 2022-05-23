@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { db } from "../firebase-config";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db, getDb } from "../firebase-config";
+import { getDatabase, ref, set } from "firebase/database";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  serverTimestamp,
+} from "firebase/firestore";
 import { toast } from "react-toastify";
 
 const PersonalInformation = () => {
@@ -15,18 +21,16 @@ const PersonalInformation = () => {
     postal_code: "",
   });
 
-  const [fetchPersonalInfo, setFetchPersonalInfo] = useState([]);
+  // https://www.youtube.com/watch?v=F7t-n5c7JsE
+  const [personalInformations, setPersonalInformations] = useState([]);
 
-  const fetchPersonalInfos = async () => {
-    const response = db.collection("personal-information");
-    const data = await response.get();
-    data.docs.forEach((item) => {
-      setFetchPersonalInfo([...fetchPersonalInfo, item.data()]);
-    });
-  };
   useEffect(() => {
-    fetchPersonalInfos();
+    getPersonalInfo();
   }, []);
+
+  // useEffect(() => {
+  //   console.log(personalInformations);
+  // }, [personalInformations]);
 
   const onChange = (event) => {
     setpersonalInformation((prevState) => ({
@@ -48,6 +52,22 @@ const PersonalInformation = () => {
       toast.error("Failed to save personal information!");
     }
   };
+
+  function getPersonalInfo() {
+    const personalInfoRef = collection(db, "personal-information");
+    getDocs(personalInfoRef)
+      .then((res) => {
+        const PersonalInformation = res.docs.map((doc) => ({
+          data: doc.data(),
+          id: doc.id,
+        }));
+        console.log(PersonalInformation);
+        setPersonalInformations(PersonalInformation);
+        // console.log(res.docs);
+        // const personalInfo = res.docs;
+      })
+      .catch((error) => console.log(error.message));
+  }
   return (
     <div>
       <div className="mt-10 sm:mt-0">
@@ -220,11 +240,16 @@ const PersonalInformation = () => {
           </div>
         </div>
       </div>
-
-      {fetchPersonalInfo &&
-        fetchPersonalInfo.map((fetchPersonalInfo) => {
-          <h3>{fetchPersonalInfo.first_name}</h3>;
-        })}
+      <h2>Display Personal Info</h2>
+      <div>
+        {personalInformations.map((personalInformation) => (
+          <div key={personalInformation.id}>
+            {personalInformation.data.first_name} <br />
+            {personalInformation.data.last_name} <br />
+            {personalInformation.data.email_address} <br />
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
